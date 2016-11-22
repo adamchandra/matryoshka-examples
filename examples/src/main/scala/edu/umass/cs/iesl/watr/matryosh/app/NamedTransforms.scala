@@ -1,6 +1,6 @@
 package edu.umass.cs.iesl.watr
-package experiment
-
+package matryosh
+package app
 
 import scalaz.~>
 import scalaz.Functor
@@ -9,8 +9,7 @@ import matryoshka._
 
 trait NamedTransforms {
 
-  // import sourcecode._
-  import sourcecode.Text
+  import sourcecode._
 
   def namedDistLaw[F[_]:Functor, G[_]](
     dl: DistributiveLaw[F, G]
@@ -65,6 +64,7 @@ trait NamedTransforms {
       s"<$fname:$fn[T[$gn]]=>$gn[T[$gn]]>"
     }
   }
+
   def namedAlgebra[F[_], A](
     alg: Text[Algebra[F, A]]
   )(implicit
@@ -82,6 +82,49 @@ trait NamedTransforms {
     }
   }
 
+  def namedElgotAlgebraM2[W[_], M[_], F[_], A](
+    alg: ElgotAlgebraM[W, M, F, A]
+  )(implicit
+    name: Name,
+    wct: ClassTag[W[_]],
+    mct: ClassTag[M[_]],
+    fct: ClassTag[F[_]],
+    act: ClassTag[A]
+  ): ElgotAlgebraM[W, M, F, A] = new ElgotAlgebraM[W, M, F, A]{
+    def apply(fa: W[F[A]]) = {
+      alg.apply(fa)
+    }
+    override def toString() = {
+      val fn = name.value
+      val f = fct.runtimeClass.getSimpleName
+      val w = wct.runtimeClass.getSimpleName
+      val m = mct.runtimeClass.getSimpleName
+      val a = act.runtimeClass.getSimpleName
+      s"<$fn:$w[$f[$a]]]=>$m[$a]>"
+    }
+  }
+  // type ElgotAlgebraM[W[_], M[_], F[_], A] = W[F[A]] => M[A]
+  def namedElgotAlgebraM[W[_], M[_], F[_], A](
+    alg: Text[ElgotAlgebraM[W, M, F, A]]
+  )(implicit
+    wct: ClassTag[W[_]],
+    mct: ClassTag[M[_]],
+    fct: ClassTag[F[_]],
+    act: ClassTag[A]
+  ): ElgotAlgebraM[W, M, F, A] = new ElgotAlgebraM[W, M, F, A]{
+    def apply(fa: W[F[A]]) = {
+      alg.value.apply(fa)
+    }
+    override def toString() = {
+      val fn = alg.source
+      val f = fct.runtimeClass.getSimpleName
+      val w = wct.runtimeClass.getSimpleName
+      val m = mct.runtimeClass.getSimpleName
+      val a = act.runtimeClass.getSimpleName
+      s"<$fn:$w[$f[$a]]]=>$m[$a]>"
+    }
+  }
+
 
   // type GAlgebra[W[_], F[_], A] = F[W[A]] => A
   def namedGAlgebra[W[_], F[_], A](
@@ -96,11 +139,11 @@ trait NamedTransforms {
       alg.value.apply(fwa)
     }
     override def toString() = {
-      val fname = alg.source
-      val fn = fct.runtimeClass.getSimpleName
-      val wn = wct.runtimeClass.getSimpleName
-      val an = act.runtimeClass.getSimpleName
-      s"<$fname:$fn[$wn[$an]]=>$an>"
+      val fn = alg.source
+      val f = fct.runtimeClass.getSimpleName
+      val w = wct.runtimeClass.getSimpleName
+      val a = act.runtimeClass.getSimpleName
+      s"<$fn:$f[$w[$a]]=>$a>"
     }
   }
 }

@@ -75,9 +75,9 @@ object CommonLibs extends LibVersions {
   val matryoshkaCore   = "com.slamdata"            %% "matryoshka-core"  % "0.11.1"
   // Needed for matryoshka, not needed when I properly build it (rather than putting in ./lib dir)
   val matryoshkaLibs = Seq(
-    "com.github.julien-truffaut" %% "monocle-core" % monocleVersion % "compile, test",
-    "org.scalaz"                 %% "scalaz-core"  % scalazVersion  % "compile, test",
-    "com.github.mpilquist"       %% "simulacrum"   % "0.10.0"       % "compile, test"
+    "com.github.julien-truffaut" %% "monocle-core" % monocleVersion,
+    "org.scalaz"                 %% "scalaz-core"  % scalazVersion,
+    "com.github.mpilquist"       %% "simulacrum"   % "0.10.0"
   )
 
 
@@ -110,32 +110,52 @@ object ThisBuildDefault {
 
     autoCompilerPlugins in ThisBuild := true,
 
-    // addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.5"),
-    // addCompilerPlugin("org.spire-math" %% "kind-projector"  % "0.8.0"),
-
     ivyLoggingLevel in ThisBuild := UpdateLogging.Quiet,
 
+    // addCompilerPlugin("org.spire-math" %% "kind-projector"   % "0.9.2"),
+    // addCompilerPlugin("org.scalamacros" % "paradise"         % "2.1.0" cross CrossVersion.full),
+    // addCompilerPlugin("com.milessabin"  % "si2712fix-plugin" % "1.2.0" cross CrossVersion.full),
+
     scalacOptions in ThisBuild ++= Seq(
-      "-encoding", "UTF-8",
-      "-target:jvm-1.6",
-      "-feature",
       "-deprecation",
-      "-unchecked",
+      "-encoding", "UTF-8",
+      "-feature",
       "-language:existentials",
-      "-language:postfixOps",
-      "-language:implicitConversions",
       "-language:higherKinds",
-      "-Xlint",
-      "-Yinline-warnings",
-      "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver
-      "-Ywarn-inaccessible",
-      "-Ywarn-dead-code",
-      "-Xfuture"
-        // "-Ywarn-unused-import", // noisy, but good to run occasionally
-        // "-Xcheckinit", // runtime error when a val is not initialized due to trait hierarchies (instead of NPE somewhere else)
-        // "-Ywarn-value-discard", // Warn when non-Unit expression results are unused
-        //"-Ywarn-numeric-widen", // noisy
+      "-language:implicitConversions",
+      "-unchecked",
+      // "-Xfatal-warnings",
+      "-Xfuture",
+      // "-Xlint",
+      "-Yno-adapted-args",
+      // "-Yno-imports",
+      "-Ywarn-dead-code", // N.B. doesn't work well with the ??? hole
+      "-Ywarn-numeric-widen",
+      "-Ywarn-unused-import"
+      // "-Ywarn-value-discard"
     ),
+    scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits"),
+    // scalacOptions in ThisBuild ++= Seq(
+    //   "-encoding", "UTF-8",
+    //   "-target:jvm-1.6",
+    //   "-feature",
+    //   "-deprecation",
+    //   "-unchecked",
+    //   "-language:existentials",
+    //   "-language:postfixOps",
+    //   "-language:implicitConversions",
+    //   "-language:higherKinds",
+    //   "-Xlint",
+    //   "-Yinline-warnings",
+    //   "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver
+    //   "-Ywarn-inaccessible",
+    //   "-Ywarn-dead-code",
+    //   "-Xfuture"
+    //     // "-Ywarn-unused-import", // noisy, but good to run occasionally
+    //     // "-Xcheckinit", // runtime error when a val is not initialized due to trait hierarchies (instead of NPE somewhere else)
+    //     // "-Ywarn-value-discard", // Warn when non-Unit expression results are unused
+    //     //"-Ywarn-numeric-widen", // noisy
+    // ),
 
     javacOptions in (Compile, compile) ++= Seq(
       "-source", "1.6", "-target", "1.6", "-Xlint:all", "-Werror",
@@ -153,4 +173,3 @@ object ThisBuildDefault {
   )
 
 }
-

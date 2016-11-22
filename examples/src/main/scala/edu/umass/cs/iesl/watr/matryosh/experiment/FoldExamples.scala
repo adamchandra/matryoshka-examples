@@ -1,11 +1,13 @@
 package edu.umass.cs.iesl.watr
+package matryosh
 package experiment
+
 
 class ExprExamples  {
   import SpecFunctions._
 
-  import NamedTransforms._
-  import Global._
+  import app.NamedTransforms._
+  import app.Global._
 
   import scalaz.{Apply => _, _}
   import Scalaz._

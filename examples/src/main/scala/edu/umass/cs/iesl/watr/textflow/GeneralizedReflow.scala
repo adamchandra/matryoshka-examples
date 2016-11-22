@@ -1,14 +1,12 @@
 package edu.umass.cs.iesl.watr
 package textflow
 
-import textboxing.{TextBoxing => TB}
 
 import scalaz._, Scalaz.{fix => _, _}
 
 import matryoshka._
 import matryoshka.data._
 
-import Recursive.ops._
 import FunctorT.ops._
 
 

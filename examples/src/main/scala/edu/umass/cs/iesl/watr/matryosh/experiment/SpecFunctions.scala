@@ -1,10 +1,9 @@
 package edu.umass.cs.iesl.watr
+package matryosh
 package experiment
 
-
 object SpecFunctions {
-  // import NamedTransforms._
-  // import Global._
+  import app.NamedTransforms._
 
   import scalaz.{Apply => _, _}
   import Scalaz._
@@ -122,56 +121,67 @@ object SpecFunctions {
     case _         => Predef.???
   }
 
-    // Evaluate as usual, but trap 0*0 as a special case
-    def peval[T](t: Exp[(T, Int)])(implicit T: Recursive.Aux[T, Exp]): Int =
-      t match {
-        case Mul((Embed(Num(0)), _), (Embed(Num(0)), _)) => -1
-        case Mul((_,             x), (_,             y)) => x * y
-        case Num(x)                                      => x
-        case _                                           => Predef.???
-      }
-
-    val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = {
-      case (weight, Num(x))    => Some(weight * x)
-      case (weight, Mul(x, y)) => Some(weight * x * y)
-      case (_,      _)         => None
+  // Evaluate as usual, but trap 0*0 as a special case
+  def peval[T](t: Exp[(T, Int)])(implicit T: Recursive.Aux[T, Exp]): Int =
+    t match {
+      case Mul((Embed(Num(0)), _), (Embed(Num(0)), _)) => -1
+      case Mul((_,             x), (_,             y)) => x * y
+      case Num(x)                                      => x
+      case _                                           => Predef.???
     }
 
-    def extract2s[T](implicit T: Corecursive.Aux[T, Exp])
-        : Int => Exp[T \/ Int] = x =>
-      if (x == 0) Num(x)
-      else if (x % 2 == 0) Mul(-\/(Num[T](2).embed), \/-(x.toInt / 2))
-      else Num(x)
+  // type ElgotAlgebraM[W[_], M[_], F[_], A] = W[F[A]] => M[A]
+  val _weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = {
+    case (weight, Num(x))    => Some(weight * x)
+    case (weight, Mul(x, y)) => Some(weight * x * y)
+    case (_,      _)         => None
+  }
 
-    def extract2sAnd5[T](implicit T: Corecursive.Aux[T, Exp])
-        : Int => T \/ Exp[Int] = x =>
-      if (x <= 2) Num(x).right
-      else if (x % 2 == 0) \/-(Mul(2, x / 2))
-      else if (x % 5 == 0)
-        Mul(Num[T](5).embed, Num[T](x / 5).embed).embed.left
-      else Num(x).right
 
-    def extract2sNot5[T](x: Int)(implicit T: Corecursive.Aux[T, Exp]):
-        Option[Exp[T \/ Int]] =
-      if (x == 5) None else extract2s[T].apply(x).some
+  // val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] =
+  //   namedElgotAlgebraM[(Int, ?), Option, Exp, Int](_weightedEval)
 
-    def fact[T](x: Int)(implicit T: Corecursive.Aux[T, Exp]): Exp[T \/ Int] =
-      if (x > 1) Mul(-\/(Num[T](x).embed), \/-(x - 1))
-      else Num(x)
+  val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = namedElgotAlgebraM2({
+    case (weight, Num(x))    => Some(weight * x)
+    case (weight, Mul(x, y)) => Some(weight * x * y)
+    case (_,      _)         => None
+  })
 
-    def strings(t: Exp[(Int, String)]): String = t match {
-      case Num(x) => x.toString
-      case Mul((x, xs), (y, ys)) =>
-        xs + " (" + x + ")" + ", " + ys + " (" + y + ")"
-      case _ => Predef.???
-    }
+  def extract2s[T](implicit T: Corecursive.Aux[T, Exp])
+      : Int => Exp[T \/ Int] = x =>
+  if (x == 0) Num(x)
+  else if (x % 2 == 0) Mul(-\/(Num[T](2).embed), \/-(x.toInt / 2))
+  else Num(x)
 
-    def extract2and3(x: Int): Exp[Free[Exp, Int]] =
-      // factors all the way down
-      if (x > 2 && x % 2 == 0) Mul(Free.point(2), Free.point(x/2))
-      // factors once and then stops
-      else if (x > 3 && x % 3 == 0)
-        Mul(Free.liftF(Num(3)), Free.liftF(Num(x/3)))
-      else Num(x)
+  def extract2sAnd5[T](implicit T: Corecursive.Aux[T, Exp])
+      : Int => T \/ Exp[Int] = x =>
+  if (x <= 2) Num(x).right
+  else if (x % 2 == 0) \/-(Mul(2, x / 2))
+  else if (x % 5 == 0)
+    Mul(Num[T](5).embed, Num[T](x / 5).embed).embed.left
+  else Num(x).right
+
+  def extract2sNot5[T](x: Int)(implicit T: Corecursive.Aux[T, Exp]):
+      Option[Exp[T \/ Int]] =
+    if (x == 5) None else extract2s[T].apply(x).some
+
+  def fact[T](x: Int)(implicit T: Corecursive.Aux[T, Exp]): Exp[T \/ Int] =
+    if (x > 1) Mul(-\/(Num[T](x).embed), \/-(x - 1))
+    else Num(x)
+
+  def strings(t: Exp[(Int, String)]): String = t match {
+    case Num(x) => x.toString
+    case Mul((x, xs), (y, ys)) =>
+      xs + " (" + x + ")" + ", " + ys + " (" + y + ")"
+    case _ => Predef.???
+  }
+
+  def extract2and3(x: Int): Exp[Free[Exp, Int]] =
+    // factors all the way down
+    if (x > 2 && x % 2 == 0) Mul(Free.point(2), Free.point(x/2))
+  // factors once and then stops
+    else if (x > 3 && x % 3 == 0)
+      Mul(Free.liftF(Num(3)), Free.liftF(Num(x/3)))
+    else Num(x)
 
 }

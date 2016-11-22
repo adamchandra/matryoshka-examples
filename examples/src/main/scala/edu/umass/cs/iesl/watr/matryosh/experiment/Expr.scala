@@ -1,5 +1,7 @@
 package edu.umass.cs.iesl.watr
+package matryosh
 package experiment
+
 
 import matryoshka._
 import matryoshka.data._
@@ -26,6 +28,7 @@ object Exp  {
   def let(name: Symbol, v: Fix[Exp], inBody: Fix[Exp]) = Fix[Exp](Let(name, v, inBody))
 
 
+  
   implicit val traverse: Traverse[Exp] = new Traverse[Exp] {
     def traverseImpl[G[_], A, B](fa: Exp[A])(f: A => G[B])(implicit G: Applicative[G]): G[Exp[B]] = fa match {
       case Num(v)           => G.point(Num(v))
@@ -100,7 +103,7 @@ object Exp2 {
 
   // NB: This isn’t implicit in order to allow us to test our low-priority
   //     instances for CoEnv.
-  val traverse: Traverse[Exp2] = new Traverse[Exp2] {
+  implicit def traverse: Traverse[Exp2] = new Traverse[Exp2] {
     def traverseImpl[G[_], A, B](
       fa: Exp2[A])(
       f: (A) ⇒ G[B])(
@@ -112,8 +115,8 @@ object Exp2 {
       }
   }
 
-  implicit val functor: Functor[Exp2] = traverse
-  implicit val foldable: Foldable[Exp2] = traverse
+  // implicit val functor: Functor[Exp2] = traverse
+  // implicit val foldable: Foldable[Exp2] = traverse
 
   implicit val show: Delay[Show, Exp2] = new Delay[Show, Exp2] {
     def apply[α](show: Show[α]) =

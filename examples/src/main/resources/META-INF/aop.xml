@@ -2,11 +2,12 @@
 
 <aspectj>
   <aspects>
-    <aspect name="edu.umass.cs.iesl.watr.WatrAspects"/>
+    <aspect name="edu.umass.cs.iesl.watr.matryosh.app.MatryoshkaAspects"/>
   </aspects>
 
   <weaver>
-    <include within="edu.umass.cs.iesl.watr.*"/>
+    <include within="edu.umass.cs.iesl.watr.matryosh.experiment.*"/>
     <include within="matryoshka.*"/>
+    <include within="scalaz.*"/>
   </weaver>
 </aspectj>
