@@ -14,8 +14,7 @@ object AspectMain {
 
     val examples = new ExprExamples
     val examples2 = new SpecExamples1
-    // println("=========================")
-    // printAndReset()
+    val elgots = new ElgotExamples
 
 
   }

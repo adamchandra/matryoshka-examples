@@ -3,17 +3,10 @@ package matryosh
 package experiment
 
 object SpecFunctions {
-  import app.NamedTransforms._
+  // import app.NamedTransforms._
 
   import scalaz.{Apply => _, _}
   import Scalaz._
-  // import scalaz.~>
-  // import scalaz.Cofree
-  // import scalaz.NaturalTransformation
-  // import scalaz.std.option._
-  // import scalaz.syntax.apply._
-  // import scalaz.std.list._
-
 
   import matryoshka._
   import matryoshka.implicits._
@@ -40,7 +33,18 @@ object SpecFunctions {
     case Let(_, _, i)     => i
   }
 
-  def addOneOptƒ[T[_[_]]]: Exp[T[Exp]] => Option[Exp[T[Exp]]] = {
+  val MinusThree: Exp ~> Exp =
+    new (Exp ~> Exp) {
+      def apply[A](exp: Exp[A]): Exp[A] = exp match {
+        case Num(x) => Num(x-3)
+        case t      => t
+      }
+    }
+
+  // override def toString() = "<f:x-3>"
+  // res
+
+  def addOneOptƒ[T[_[_]]]: Exp[T[Exp]] => Option[Exp[T[Exp]]] = t => t match {
     case Num(n) => Num(n+1).some
     case _      => None
   }
@@ -90,17 +94,6 @@ object SpecFunctions {
   }
 
 
-  val MinusThree: Exp ~> Exp =
-    new (Exp ~> Exp) {
-      def apply[A](exp: Exp[A]): Exp[A] = {
-        val res = exp match {
-          case Num(x) => Num(x-3)
-          case t      => t
-        }
-        res
-      }
-      override def toString() = "<f:x-3>"
-    }
 
   // NB: This is better done with cata, but we fake it here
   def partialEval[T]
@@ -115,10 +108,10 @@ object SpecFunctions {
       case _ => t.map(_.head).embed
     }
 
-  val eval: Algebra[Exp, Int] = {
+  def eval: Algebra[Exp, Int] = {
     case Num(x)    => x
     case Mul(x, y) => x * y
-    case _         => Predef.???
+    case _         => ???
   }
 
   // Evaluate as usual, but trap 0*0 as a special case
@@ -127,25 +120,49 @@ object SpecFunctions {
       case Mul((Embed(Num(0)), _), (Embed(Num(0)), _)) => -1
       case Mul((_,             x), (_,             y)) => x * y
       case Num(x)                                      => x
-      case _                                           => Predef.???
+      case _                                           => ???
     }
 
+
   // type ElgotAlgebraM[W[_], M[_], F[_], A] = W[F[A]] => M[A]
-  val _weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = {
+  val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = {
     case (weight, Num(x))    => Some(weight * x)
     case (weight, Mul(x, y)) => Some(weight * x * y)
     case (_,      _)         => None
   }
 
+  def extractFactors: Coalgebra[Exp, Int] =
+    x => if (x > 2 && x % 2 == 0) Mul(2, x/2) else Num(x)
+
+
+  // def elgot[F[_]: Functor, A, B](a: A)(φ: Algebra[F, B], ψ: ElgotCoalgebra[B \/ ?, F, A]): B = {
+  //   def h: A => B =
+  //     (((x: B) => x) ||| ((x: F[A]) => φ(x ∘ h))) ⋘ ψ
+  //   h(a)
+  // }
+
+
+
+  // def extractFactorsM(x: Int): Option[Exp[Int]] =
+  def extractFactorsM: CoalgebraM[Option, Exp, Int] =
+    (x:Int) => if (x == 5) None else extractFactors(x).some
+
+
+
+  def depth[T[_[_]], F[_]]: (Int, F[T[F]]) => Int = (i, _) => i + 1
+
+  def sequential[T[_[_]], F[_]]: (Int, F[T[F]]) => State[Int, Int] =
+    (_, _) => State.get[Int] <* State.modify[Int](_ + 1)
+
 
   // val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] =
   //   namedElgotAlgebraM[(Int, ?), Option, Exp, Int](_weightedEval)
 
-  val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = namedElgotAlgebraM2({
-    case (weight, Num(x))    => Some(weight * x)
-    case (weight, Mul(x, y)) => Some(weight * x * y)
-    case (_,      _)         => None
-  })
+  // val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = namedElgotAlgebraM2({
+  //   case (weight, Num(x))    => Some(weight * x)
+  //   case (weight, Mul(x, y)) => Some(weight * x * y)
+  //   case (_,      _)         => None
+  // })
 
   def extract2s[T](implicit T: Corecursive.Aux[T, Exp])
       : Int => Exp[T \/ Int] = x =>

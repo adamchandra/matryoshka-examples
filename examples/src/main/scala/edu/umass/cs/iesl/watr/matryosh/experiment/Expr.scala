@@ -28,17 +28,19 @@ object Exp  {
   def let(name: Symbol, v: Fix[Exp], inBody: Fix[Exp]) = Fix[Exp](Let(name, v, inBody))
 
 
-  
+
   implicit val traverse: Traverse[Exp] = new Traverse[Exp] {
-    def traverseImpl[G[_], A, B](fa: Exp[A])(f: A => G[B])(implicit G: Applicative[G]): G[Exp[B]] = fa match {
-      case Num(v)           => G.point(Num(v))
-      case Mul(left, right) => G.apply2(f(left), f(right))(Mul(_, _))
-      case Var(v)           => G.point(Var(v))
-      case Lambda(p, b)     => G.map(f(b))(Lambda(p, _))
-      case Apply(func, arg) => G.apply2(f(func), f(arg))(Apply(_, _))
-      case Let(n, v, i)     => G.apply2(f(v), f(i))(Let(n, _, _))
-    }
-    override def toString() = "Traverse[Exp]"
+    def traverseImpl[G[_], A, B](fa: Exp[A])
+      (f: A => G[B])
+      (implicit G: Applicative[G]): G[Exp[B]] =
+      fa match {
+        case Num(v)           => G.point(Num(v))
+        case Mul(left, right) => G.apply2(f(left), f(right))(Mul(_, _))
+        case Var(v)           => G.point(Var(v))
+        case Lambda(p, b)     => G.map(f(b))(Lambda(p, _))
+        case Apply(func, arg) => G.apply2(f(func), f(arg))(Apply(_, _))
+        case Let(n, v, i)     => G.apply2(f(v), f(i))(Let(n, _, _))
+      }
   }
 
 
@@ -104,10 +106,10 @@ object Exp2 {
   // NB: This isn’t implicit in order to allow us to test our low-priority
   //     instances for CoEnv.
   implicit def traverse: Traverse[Exp2] = new Traverse[Exp2] {
-    def traverseImpl[G[_], A, B](
-      fa: Exp2[A])(
-      f: (A) ⇒ G[B])(
-      implicit G: Applicative[G]) =
+    def traverseImpl[G[_], A, B]
+      (fa: Exp2[A])
+      (f: (A) ⇒ G[B])
+      (implicit G: Applicative[G]) =
       fa match {
         case Const()   => G.point(Const[B]())
         case Num2(v)   => G.point(Num2[B](v))

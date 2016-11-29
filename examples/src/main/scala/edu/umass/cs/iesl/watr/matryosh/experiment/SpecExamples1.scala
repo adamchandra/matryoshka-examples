@@ -3,7 +3,6 @@ package matryosh
 package experiment
 
 import matryoshka._
-
 import matryoshka.data._
 import matryoshka.implicits._
 
@@ -37,6 +36,7 @@ class SpecExamples1  {
     "provide a catamorphism" in {
       val v = mul(num(4), mul(num(2), num(3)))
       v.cata(attributePara(peval[Fix[Exp]]))
+
       // equal(
       //   Cofree[Exp, Int](24, Mul(
       //     Cofree(4, Num(4)),
@@ -48,105 +48,73 @@ class SpecExamples1  {
 
 
 
-  "attributeElgotM" >> {
-    "fold to Cofree" in {
 
-      // weightedEval
 
-      // attributeElgotM[(Int, ?), Option](weightedEval)
-      // liftTM(attributeElgotM[(Int, ?), Option](weightedEval))
 
-      Cofree[Exp, Int](1, Mul(
-        Cofree[Exp, Int](2, Num(1)),
-        Cofree[Exp, Int](2, Mul(
-          Cofree[Exp, Int](3, Num(2)),
-          Cofree[Exp, Int](3, Num(3))))))
-        .cataM(liftTM(attributeElgotM[(Int, ?), Option](weightedEval)))
+  "para" >> {
+    "evaluate simple expr" in {
+      mul(num(1), mul(num(2), num(3)))
+        .para(peval[Fix[Exp]])
+      // must equal(6)
+    }
+
+    "evaluate special-case" in {
+      mul(num(0), num(0)).para(peval[Fix[Exp]])
+      // must equal(-1)
+    }
+
+    "evaluate equiv" in {
+      mul(num(0), mul(num(0), num(1))).para(peval[Fix[Exp]])
+      // must equal(0)
+    }
+    //   "gpara" >> {
+    //     "behave like para" in {
+    //       mul(num(0), mul(num(0), num(1)))
+    //         .gpara[Id, Int](distCata, exp => peval(exp.map(_.runEnvT))) must
+    //           equal(0)
+    //     }
+  }
+
+
+  "attributeTopDown" >> {
+    "increase toward leaves, once" in {
+      val v = mul(num(0), mul(num(0), num(1)))
+      v.attributeTopDown(0)(depth)
+
+      // must equal(
+      //   Cofree[Exp, Int](1, Mul(
+      //     Cofree(2, Num(0)),
+      //     Cofree(2, Mul(
+      //       Cofree(3, Num(0)),
+      //       Cofree(3, Num(1)))))))
+
+
+    }
+
+
+    "increase toward leaves, ltr" in {
+      val v = mul(mul(num(1), num(2)), mul(num(3), num(4)))
+      val res = v.attributeTopDownM[State[Int, ?], Int](0)(sequential).eval(0)
 
       // equal(
-      //   Cofree[Exp, Int](216, Mul(
-      //     Cofree(2, Num(1)),
-      //     Cofree(108, Mul(
-      //       Cofree(6, Num(2)),
-      //       Cofree(9, Num(3)))))).some)
+      //   Cofree[Exp, Int](0, Mul(
+      //     Cofree(1, Num(0)),
+      //     Cofree(2, Mul(
+      //       Cofree(3, Num(0)),
+      //       Cofree(4, Num(1)))))))
     }
   }
 
-}
 
-  //   "para" >> {
-  //     "evaluate simple expr" in {
-  //       testRec(
-  //         mul(num(1), mul(num(2), num(3))),
-  //         new RecRunner[Exp, Int] {
-  //           def run[T](implicit T: Recursive.Aux[T, Exp]) =
-  //             _.para(peval[T]) must equal(6)
-  //         })
-  //     }
-
-  //     "evaluate special-case" in {
-  //       testRec(
-  //         mul(num(0), num(0)),
-  //         new RecRunner[Exp, Int] {
-  //           def run[T](implicit T: Recursive.Aux[T, Exp]) =
-  //             _.para(peval[T]) must equal(-1)
-  //         })
-  //     }
-
-  //     "evaluate equiv" in {
-  //       testRec(
-  //         mul(num(0), mul(num(0), num(1))),
-  //         new RecRunner[Exp, Int] {
-  //           def run[T](implicit T: Recursive.Aux[T, Exp]) =
-  //             _.para(peval[T]) must equal(0)
-  //         })
-  //     }
-  //   }
-
-  //   "gpara" >> {
-  //     "behave like para" in {
-  //       mul(num(0), mul(num(0), num(1)))
-  //         .gpara[Id, Int](distCata, exp => peval(exp.map(_.runEnvT))) must
-  //           equal(0)
-  //     }
-  //   }
-
-  //   def depth[T[_[_]], F[_]]: (Int, F[T[F]]) => Int = (i, _) => i + 1
-
-  //   def sequential[T[_[_]], F[_]]: (Int, F[T[F]]) => State[Int, Int] =
-  //     (_, _) => State.get[Int] <* State.modify[Int](_ + 1)
-
-  //   "attributeTopDown" >> {
-  //     "increase toward leaves" in {
-  //       val v = mul(num(0), mul(num(0), num(1)))
-  //       v.attributeTopDown(0)(depth) must equal(
-  //         Cofree[Exp, Int](1, Mul(
-  //           Cofree(2, Num(0)),
-  //           Cofree(2, Mul(
-  //             Cofree(3, Num(0)),
-  //             Cofree(3, Num(1)))))))
-  //     }
-
-  //     "increase toward leaves, ltr" in {
-  //       val v = mul(num(0), mul(num(0), num(1)))
-  //       v.attributeTopDownM[State[Int, ?], Int](0)(sequential).eval(0) must
-  //         equal(
-  //           Cofree[Exp, Int](0, Mul(
-  //             Cofree(1, Num(0)),
-  //             Cofree(2, Mul(
-  //               Cofree(3, Num(0)),
-  //               Cofree(4, Num(1)))))))
-  //     }
-  //   }
-
-  //   "distCata" >> {
-  //     "behave like cata" in {
-  //       val v = mul(num(0), mul(num(0), num(1)))
-  //       v.gcata[Id, Int](distCata, eval) must equal(v.cata(eval))
-  //       v.convertTo[Mu[Exp]].gcata[Id, Int](distCata, eval) must equal(v.cata(eval))
-  //       v.convertTo[Nu[Exp]].gcata[Id, Int](distCata, eval) must equal(v.cata(eval))
-  //     }
-  //   }
+    "distCata" >> {
+      "behave like cata" in {
+        val v = mul(num(0), mul(num(0), num(1)))
+        v.gcata[Id, Int](distCata, eval)
+        // must equal(v.cata(eval))
+        // v.convertTo[Mu[Exp]].gcata[Id, Int](distCata, eval) must equal(v.cata(eval))
+        // v.convertTo[Nu[Exp]].gcata[Id, Int](distCata, eval) must equal(v.cata(eval))
+      }
+    }
 
   //   "distPara" >> {
   //     "behave like para" in {
@@ -183,18 +151,10 @@ class SpecExamples1  {
   //     }
   //   }
 
-  //   "elgotApo" >> {
-  //     "pull out factors of two and stop on 5" in {
-  //       420.elgotApo[Fix[Exp]](extract2sAnd5[Fix[Exp]]) must
-  //         equal(mul(num(2), mul(num(2), mul(num(5), num(21)))))
-  //     }
-  //   }
 
   //   "anamorphism" >> {
   //     "pull out factors of two" in {
   //       "anaM" >> {
-  //         def extractFactorsM(x: Int): Option[Exp[Int]] =
-  //           if (x == 5) None else extractFactors(x).some
   //         "pull out factors of two" in {
   //           testCorec(
   //             12,
@@ -257,15 +217,6 @@ class SpecExamples1  {
   //         equal(i.apo[Nu[Exp]](extract2s[Nu[Exp]]))).toResult
   //     }
 
-  //     "behave like elgotApo in elgotAna" >> prop { (i: Int) =>
-  //       (i.elgotAna[Fix[Exp]](distApo[Fix[Exp], Exp], extract2sAnd5[Fix[Exp]]) must
-  //         equal(i.elgotApo[Fix[Exp]](extract2sAnd5[Fix[Exp]]))).toResult and
-  //       (i.elgotAna[Mu[Exp]](distApo[Mu[Exp], Exp], extract2sAnd5[Mu[Exp]]) must
-  //         equal(i.elgotApo[Mu[Exp]](extract2sAnd5[Mu[Exp]]))).toResult and
-  //       (i.elgotAna[Nu[Exp]](distApo[Nu[Exp], Exp], extract2sAnd5[Nu[Exp]]) must
-  //         equal(i.elgotApo[Nu[Exp]](extract2sAnd5[Nu[Exp]]))).toResult
-  //     }
-  //   }
 
   //   "hylo" >> {
   //     "factor and then evaluate" >> prop { (i: Int) =>
@@ -596,3 +547,5 @@ class SpecExamples1  {
   //           CoEnv(6.left[Exp[Fix[CoEnv[Int, Exp, ?]]]]).embed))).embed))).embed
   //     exp.cata(recover(eval)) must equal(720)
   //   }
+
+}

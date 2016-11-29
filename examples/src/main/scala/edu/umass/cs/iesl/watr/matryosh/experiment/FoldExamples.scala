@@ -6,7 +6,7 @@ package experiment
 class ExprExamples  {
   import SpecFunctions._
 
-  import app.NamedTransforms._
+  // import app.NamedTransforms._
   import app.Global._
 
   import scalaz.{Apply => _, _}
@@ -19,42 +19,6 @@ class ExprExamples  {
   import Exp._
   import Exp2._
   val exp2 = Exp2
-
-
-  def applyTransInOriginalSpace (): Unit = {
-    mul(num(1), mul(num(12), num(8)))
-      .prepro(MinusThree, example1ƒ)
-    //   mul(num(-1), mul(num(7), num(3)))
-  }
-
-
-
-  // def gprepro[W[_]: Comonad, A](t: T)(
-  //   k: DistributiveLaw[Base, W],
-  //   e: Base ~> Base,
-  //   f: GAlgebra[W, Base, A])(
-
-  object gprepro {
-
-    def multiplyOriginalWithIdentity(): Unit =  {
-      val dh0 = namedDistLaw[Exp, Cofree[Exp, ?]](distHisto)
-      val nt0 = namedNatTrans(NaturalTransformation.refl[Exp])
-      val na0 = namedGAlgebra[Cofree[Exp, ?], Exp, Fix[Exp]](partialEval[Fix[Exp]] _)
-
-      lam('meh, mul(vari('meh), mul(num(10), num(8))))
-        .gprepro[Cofree[Exp, ?], Fix[Exp]](dh0, nt0, na0)
-
-      // equal(lam('meh, mul(vari('meh), num(80))))
-    }
-
-    def applyNatRepeatedly(): Unit = {
-      lam('meh, mul(vari('meh), mul(num(13), num(8))))
-        .gprepro[Cofree[Exp, ?], Fix[Exp]](
-        distHisto, MinusThree, partialEval[Fix[Exp]])
-
-      // equal(lam('meh, mul(vari('meh), num(-4))))
-    }
-  }
 
 
   "Recursive" >> {
@@ -109,31 +73,43 @@ class ExprExamples  {
 
     "transCata" >> {
       "change simple literal" in {
-        num(1).transCata(addOneƒ) // must equal(num(2).convertTo[T[Exp]])
+        num(1).transCata(addOneƒ)
+          // must equal(num(2).convertTo[T[Exp]])
       }
 
       "change sub-expressions" in {
-        mul(num(1), num(2)).transCata(addOneƒ) // must equal(mul(num(2), num(3)).convertTo[T[Exp]])
+        mul(num(1), num(2)).transCata(addOneƒ)
+          // must equal(mul(num(2), num(3)).convertTo[T[Exp]])
       }
 
       "be bottom-up" in {
-        mul(num(0), num(1)).transCata(addOneOrSimplifyƒ)  // must equal(num(2))) and
-        mul(num(1), num(2)).transCata(addOneOrSimplifyƒ) // must equal(mul(num(2), num(3))))
+        "ex1" >> {
+          mul(num(0), num(1)).transCata(addOneOrSimplifyƒ)
+          // must equal(num(2))) and
+        }
+        "ex2" >> {
+          mul(num(1), num(2)).transCata(addOneOrSimplifyƒ)
+        }
+          // must equal(mul(num(2), num(3))))
       }
     }
 
     "transAna" >> {
       "change simple literal" in {
-        num(1).transAna(addOneƒ) // must equal(num(2).convertTo[T[Exp]])
+        num(1).transAna(addOneƒ)
+          // must equal(num(2).convertTo[T[Exp]])
       }
 
       "change sub-expressions" in {
-        mul(num(1), num(2)).transAna(addOneƒ) // must equal(mul(num(2), num(3)).convertTo[T[Exp]])
+        mul(num(1), num(2)).transAna(addOneƒ)
+          // must equal(mul(num(2), num(3)).convertTo[T[Exp]])
       }
 
       "be top-down" in {
-        mul(num(0), num(1)).transAna(addOneOrSimplifyƒ) // must equal(num(0))
-        mul(num(1), num(2)).transAna(addOneOrSimplifyƒ) // must equal(num(2))
+        mul(num(0), num(1)).transAna(addOneOrSimplifyƒ)
+          // must equal(num(0))
+        mul(num(1), num(2)).transAna(addOneOrSimplifyƒ)
+          // must equal(num(2))
       }
     }
 
@@ -146,9 +122,21 @@ class ExprExamples  {
       "apply ~> repeatedly" in {
         mul(num(1), mul(num(12), num(8))).prepro(MinusThree, example1ƒ) // must equal(-24.some)
       }
+
+      "~> must not affect a lone leaf node" in {
+        num(1).prepro(MinusThree, example1ƒ)
+      }
     }
 
     "gprepro" >> {
+      // val dh0 = namedDistLaw[Exp, Cofree[Exp, ?]](distHisto)
+      // val nt0 = namedNatTrans(NaturalTransformation.refl[Exp])
+      // val na0 = namedGAlgebra[Cofree[Exp, ?], Exp, Fix[Exp]](partialEval[Fix[Exp]] _)
+
+      // lam('meh, mul(vari('meh), mul(num(10), num(8))))
+      //   .gprepro[Cofree[Exp, ?], Fix[Exp]](dh0, nt0, na0)
+
+
       "multiply original with identity ~>" in {
         lam('meh, mul(vari('meh), mul(num(10), num(8))))
           .gprepro[Cofree[Exp, ?], Fix[Exp]](
@@ -170,6 +158,7 @@ class ExprExamples  {
         num(1).transPrepro(NaturalTransformation.refl[Exp], addOneƒ)
         // must equal(num(2).convertTo[T[Exp]])
       }
+
 
       "apply ~> in original space" in {
         mul(num(1), mul(num(12), num(8))).transPrepro(MinusThree, addOneƒ)
@@ -251,54 +240,5 @@ class ExprExamples  {
       // }
     }
 
-    "coelgot" >> {
-      // "behave like cofCata ⋘ attributeAna" >> {
-      //   // For any i:Int
-      //   val i:Int = 3
-      //   i.coelgot(eval.generalizeElgot[(Int, ?)], extractFactors)
-      //   // must equal(
-      //   i.ana[Cofree[Exp, Int]](attributeCoalgebra(extractFactors)).cata(liftT(eval.generalizeElgot[(Int, ?)]))
-      // }
-    }
-
-    "elgot" >> {
-      // "behave like interpCata ⋘ freeAna" >>  {
-      //   // For any i:Int
-      //   val i:Int = 3
-      //   i.elgot(eval, extractFactors.generalizeElgot[Int \/ ?])
-      //   // must equal(
-      //   i.ana[Free[Exp, Int]](runT(extractFactors.generalizeElgot[Int \/ ?])).cata(patterns.recover(eval))
-      // }
-    }
-
-    // For any i:Int
-    val i:Int = 3
-
-    "generalizeElgot" >> {
-      // "behave like cata on an algebra" {
-      //   val x = i.ana[Fix[Exp]](extractFactors).cata(eval)
-      //   i.coelgot(eval.generalizeElgot[(Int, ?)], extractFactors) must equal(x)
-      // }
-
-      // "behave like ana on an coalgebra" {
-      //   val x = i.ana[Fix[Exp]](extractFactors).cata(eval)
-      //   i.elgot(eval, extractFactors.generalizeElgot[Int \/ ?]) must equal(x)
-      // }
-    }
-
-    def extractFactors: Coalgebra[Exp, Int] = x =>
-    if (x > 2 && x % 2 == 0) Mul(2, x/2)
-    else Num(x)
-
-    //   "generalizeCoalgebra" >> {
-    //     "behave like ana" ! prop { (i: Int) =>
-    //       i.apo[Fix[Exp]](extractFactors.generalize[Fix[Exp] \/ ?]) must
-    //         equal(i.ana[Fix[Exp]](extractFactors))
-    //       i.apo[Mu[Exp]](extractFactors.generalize[Mu[Exp] \/ ?]) must
-    //         equal(i.ana[Mu[Exp]](extractFactors))
-    //       i.apo[Nu[Exp]](extractFactors.generalize[Nu[Exp] \/ ?]) must
-    //         equal(i.ana[Nu[Exp]](extractFactors))
-    //     }
-    //   }
   }
 }

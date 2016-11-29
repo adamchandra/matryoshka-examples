@@ -6,8 +6,6 @@ ThisBuildDefault.settings
 
 organization in ThisBuild := "edu.umass.cs.iesl"
 
-// autoCompilerPlugins  := true
-
 val libV = LibVersions
 val Lib = CommonLibs
 
@@ -15,7 +13,7 @@ val Lib = CommonLibs
 val commonDeps = LogLibs.logback ++
   TestLibs.testAndCheck ++
   Lib.matryoshkaLibs ++ Seq(
-    // Lib.scalazCore,
+    Lib.ammonite,
     Lib.sourcecode,
     Lib.aspectJ
     // compilerPlugin("org.spire-math" %% "kind-projector"  % "0.9.2")

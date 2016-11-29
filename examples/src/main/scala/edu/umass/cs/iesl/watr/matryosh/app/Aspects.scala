@@ -3,7 +3,6 @@ package matryosh
 package app
 
 import org.aspectj.lang._
-import org.aspectj.lang.annotation._
 import textboxing.{TextBoxing => TB}
 import TB._
 import scala.collection.mutable
@@ -13,7 +12,11 @@ object Global {
   val callStack  = mutable.Stack[String]()
 
   def formatCallStack(): TB.Box = {
-    vjoins()(callStack.map(_.box))
+    vjoins()(
+      callStack.reverse.zipWithIndex
+        .map({case (frame, i) => s"$i. $frame".box})
+        .reverse
+    )
   }
 
   import scala.collection.mutable
@@ -37,113 +40,138 @@ object Global {
 
 }
 
-@Aspect
-class MatryoshkaAspects {
 
-  // @Pointcut("call(* toAtoms(..))")
-  // def pcToAtoms() =  {}
-
-  // @Before("pcToAtoms()")
-  // def beforePcToAtoms(jp: JoinPoint): Unit = {
-  //   println(s"beforePcToAtoms:${jp}")
-  // }
-
-  // @Pointcut("within(matryoshka..*)")
-  // @Pointcut("execution(* matryoshka..*.*(..))")
-  // @Pointcut("call(* matryoshka..*.*(..)) && !within(WatrAspects)")
-  // def pointcut0() = {
-  // }
-
-  // @Before("pointcut0()")
-  // def before_pointcut0(jp: JoinPoint) = println(s"before:pointcut0 ${jp}")
+import ammonite.{ops => fs}
+import fs._
 
 
-  // @Pointcut("withincode(_root_.matryoshka..*.*(..)) && execution(* *(..)) && !within(WatrAspects)")
-  // @Pointcut("cflow(pointcut0()) && execution(* *(..))")
-  // !call(* scala..*.*(..)) &&
-  //   !call(* scalaz..*.*(..)) &&
-  // !execution(* scalaz..*.*(..)) &&
-  // !call(* *$eq(..)) &&
-  // !within(edu.umass.cs.iesl.watr.matryosh.experiment.Global$) &&
-  //   !within(edu.umass.cs.iesl.watr.matryosh.experiment.Global) &&
-  //   !call(* edu.umass.cs.iesl.watr.matryosh.experiment.Global$.*.*(..)) &&
-  //   !execution(* edu.umass.cs.iesl.watr.matryosh.experiment.Global$.*.*(..)) &&
-  //   !call(* edu.umass.cs.iesl.watr.matryosh.experiment.AspectMain$.*.*(..)) &&
-  //   !within(edu.umass.cs.iesl.watr.matryosh.experiment.AspectMain$) &&
-  //   !within(edu.umass.cs.iesl.watr.matryosh.experiment.AspectMain) &&
-  //   !call(* *$init$(..)) &&
-  // !within(edu.umass.cs.iesl.watr.matryosh.experiment.WatrAspects) &&
-  // !within(edu.umass.cs.iesl.watr.textboxing..*) &&
-  // !within(edu.umass.cs.iesl.watr.matryosh.app.*) &&
-    // !within(edu.umass.cs.iesl.watr.matryosh.app..*) &&
+object Testing {
 
-  @Pointcut("""
-!within(edu.umass.cs.iesl.watr.textboxing..*) &&
-!within(edu.umass.cs.iesl.watr.matryosh.app..*) &&
-!call(* edu.umass.cs.iesl.watr.matryosh.app..*.*(..)) &&
-!execution(* edu.umass.cs.iesl.watr.matryosh.app..*.*(..)) &&
-!execution(* edu.umass.cs.iesl.watr.matryosh.experiment.Exp$Mul.*(..)) &&
-!execution(* edu.umass.cs.iesl.watr.matryosh.experiment.Exp$Num.*(..)) &&
-!within(matryoshka.data.Fix$) &&
-!within(matryoshka.data.Fix) &&
-!cflow(execution(String *.toString())) &&
-!cflow(call(String *.toString())) &&
-!within(java..*) &&
-!within(scala..*) &&
-!within(scalaz..*) &&
-!execution(* scalaz..*.*(..)) &&
-!call(* scalaz..*.*(..)) &&
-!call(* scala..*.*(..)) &&
-!call(* *..*.traverseImpl..*.*(..)) &&
-!execution(* *..*.traverseImpl..*.*(..)) &&
-!within(org.aspectj..*.*) && (
-  execution(* *(..)) ||
-  call(* *(..))
-)
-""") def pointcut1() = {}
+  val instNameCache = mutable.HashMap[String, String]()
+  // val funcNameCache = mutable.HashMap[Int, String]()
+  val sourceFileCache = mutable.HashMap[String, Option[Seq[String]]]()
+  val instNumRe = "@[a-z0-9]{6,8}".r
+
+  def cacheFuncName(factoryFn: String, o: Any): Option[String] = {
+    val argstr = o.toString()
+    val hash = o.hashCode.toString
+    if (argstr.startsWith("<function")) {
+      instNameCache.getOrElseUpdate(hash, {
+        // println(s"caching function: ${factoryFn}@${hash}")
+        factoryFn
+      })
+    }
+
+    instNameCache.get(hash)
+  }
+  def cacheInst(factoryFn: String, o: Any): Option[String] = {
+    val argstr = o.toString()
+
+    instNumRe.findFirstIn(argstr)
+      .map({idstr =>
+        instNameCache.getOrElseUpdate(idstr, factoryFn)
+      })
+  }
+
+  def getCachedInst(o: Any): Option[String] = {
+    if (o.toString().startsWith("<function")) {
+      // println(s"want cached function: ${o.hashCode().toString()}")
+    }
+    val hash = o.hashCode.toString
+    instNameCache.get(hash)
+      .orElse({
+        instNumRe.findFirstIn(o.toString)
+          .flatMap(instNameCache.get(_))
+      })
+  }
+
+  def reformatObject(o: Any): String = {
+    getCachedInst(o) getOrElse {
+      if (o.toString().startsWith("<function")) {
+        s"ƒ:${o.hashCode.toString}"
+      } else {
+        o.toString
+          .replaceAll("Fix", "_")
+      }
+
+    }
+  }
 
 
-
-  import Global._
-
-  @Around("pointcut1()")
-  def around_pointcut1(jp: ProceedingJoinPoint): Any = {
-
+  def testingAdviceBefore(jp: JoinPoint, encJP: JoinPoint.StaticPart): Any = {
     val stp = jp.getStaticPart
     val stSrcLoc = stp.getSourceLocation
     val srcLoc = jp.getSourceLocation
     val sig = jp.getSignature
+    val encJp = encJP.toShortString()
+    val encSL = encJP.getSourceLocation
 
-    val args = jp.getArgs.map(_.toString()).mkString(", ")
+
+    val diffSrcs = if (srcLoc.getFileName != encSL.getFileName || srcLoc.getLine != encSL.getLine) {
+      s""" !!f${srcLoc.getFileName}/ef:${encSL.getFileName}@ l${srcLoc.getLine}/el:${encSL.getLine}"""
+    } else ""
+
+    val args = jp.getArgs.map(reformatObject(_)).mkString(", ")
 
     val stn =  sig.getDeclaringTypeName
       .replaceAll("edu.umass.cs.iesl.watr.matryosh.experiment.", "")
       .replaceAll("edu.umass.cs.iesl.watr.", "")
-      .replaceAll("matryoshka.", "")
+      .replaceAll("matryoshka.", "m.")
 
     val sm =  sig.getModifiers
     val sn =  sig.getName
-    val preTrace = s"""${stn}.${sn}(${args})  ${srcLoc}"""
+    val kind = jp.getKind match {
+      case "method-execution" => "exec"
+      case "method-call" => "call"
+      case _ => "?"
+    }
 
+    val lineNum = srcLoc.getLine
+    val srcCode = if (lineNum > 0) {
+      val maybeSrcLines = sourceFileCache.getOrElseUpdate(
+        srcLoc.getFileName,
+        fs.ls.rec(pwd)
+          .filter(_.name.endsWith(srcLoc.getFileName))
+          .headOption.map({ p =>
+            read.lines(p)
+              .map(_.trim.replaceAll(" +", " "))
+          })
+      )
+
+      maybeSrcLines
+        .map({ lines =>
+          lines.drop(lineNum-1).headOption.getOrElse(s"<src:${srcLoc.getFileName}:$lineNum>")
+        })
+        .getOrElse(s"<src:${srcLoc.getFileName}>")
+
+    } else { s"<src:${srcLoc.getFileName}:$lineNum>" }
+
+    // val preTrace = s"""${kind}: ${srcCode} :: ${sn}(${args}) ${sig.toShortString()}"""
+    // val preTrace = s"""${kind}: ${srcCode} :: ${sn}(${args}) ${stn}"""
+    // val preTrace = s"""${kind}: ${srcCode} :: ${sn}(${args}) ${diffSrcs}"""
+    val preTrace = s"""${kind}: ${srcCode} :: ${sn}(${args})"""
 
     Global.callStack.push(preTrace)
 
-    ///// Proceed
-    val ret = jp.proceed(jp.getArgs)
+  }
 
+  def testingAdviceAfter(jp: JoinPoint, ret: Any): Unit = {
 
+    val retBox = if (ret!=null) {
+      cacheFuncName(jp.getSignature.getName, ret)
+      cacheInst(jp.getSignature.getName, ret)
+      reformatObject(ret)
+    } else "<null>"
 
-    // println(s"$ind=> ${ret}")
-    // val topFn = s"${ret} <- ${pre}".box
-    val retBox = ret.toString
-    val pad = " "*(50-retBox.length)
-    val currStack = retBox.box + pad + " <- " + formatCallStack()
-    println(currStack)
-    println("\n\n")
+    // val currStack = retBox.box + "   <<"  % indent(10)(Global.formatCallStack())
+    // println(currStack)
+    // println("\n\n")
 
     val pre = Global.callStack.pop()
-    ret
   }
+
+}
+
 
   // val srcLoc =
   //   s"""|SourceLoc
@@ -158,12 +186,6 @@ class MatryoshkaAspects {
 
   //   val args = jp.getArgs.map(_.toString()).mkString(", ")
   //   val sig = jp.getSignature
-  //   // () => Class[?0]
-  //   //   () => String
-  //   // () => Int
-  //   // () => String
-  //   // () => String
-  //   // () => String
 
   //   val sigStr =
   //     s"""|Signature
@@ -202,7 +224,6 @@ class MatryoshkaAspects {
   // def trace_out_pointcut1(jp: JoinPoint) =  {
   //   println(s"after:pointcut1 ${jp}")
   // }
-}
 
     // println(
     //   indent(Global.indent*2)(
